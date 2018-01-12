@@ -1,0 +1,19 @@
+{
+    "name": "catphp/db",
+    "description": "very usefual lib for operate db",
+    "type": "library",
+    "license": "mit",
+    "authors": [
+        {
+            "name": "luyu",
+            "email": "luyulewin@didichuxing.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+          "CatPHP\\DB\\": "src/CatPHP/DB",
+          "CatPHP\\DB\\Sql\\": "src/CatPHP/DB/Sql"
+        }
+  }
+}
