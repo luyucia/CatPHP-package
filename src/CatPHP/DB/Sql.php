@@ -12,6 +12,9 @@ class Sql
     public  $orderBy = '';
     public  $groupBy = '';
     public  $joinStr = '';
+    public  $limit   = false;
+
+
     function __construct($tableName)
     {
         $this->tableName = $tableName;
@@ -19,12 +22,15 @@ class Sql
     public function sql($bindParam=false)
     {
         if ($this->queryType==='s') {
-            return "select {$this->columns} from {$this->tableName} "
+            $sql = "select {$this->columns} from {$this->tableName} "
             .$this->joinStr
             .$this->makeWhere($bindParam)
             .$this->groupBy
-            .$this->orderBy
-            ;
+            .$this->orderBy;
+            if ($this->limit) {
+                $sql.= " limit {$this->limit}";
+            }
+            return $sql;
         }elseif ($this->queryType==='i') {
             # code...
         }
@@ -39,41 +45,49 @@ class Sql
     private function makeWhere($bindParam)
     {
             $whereStr = '';
-            foreach ($this->where as $i=>$w) {
-                if (is_array($w[1])) {
+            $first    = true;
+
+            foreach ($this->where as $w) {
+
+                $column_name      = $w[0] ;
+                $column_value     = $w[1];
+                $column_condition = $w[2];
+                $column_logic     = $w[3];
+
+                if (is_array($column_value)) {
                     if ($bindParam) {
-                        $w[1] = '('. rtrim(str_repeat('?,', count($w[1]) ),',') .')';
+                        $column_value = '('. rtrim(str_repeat('?,', count($column_value) ),',') .')';
                     }else{
-                        $w[1] = '('.implode(',',  array_map([$this,'pendingType'],$w[1])  ).')';
+                        $column_value = '('.implode(',',  array_map([$this,'pendingType'],$column_value)  ).')';
                     }
-                    if($w[2]=='not in')
+                    if($column_condition == 'not in')
                     {
-                        $w[2] = 'not in';
+                        $column_condition = 'not in';
                     }else{
-                        $w[2] = 'in';
+                        $column_condition = 'in';
                     }
                 }
-                elseif ($w[1]==='null') {
-                    $w[2] = 'is';
+                elseif ($column_value==='null') {
+                    $column_condition = 'is';
                 }
-                elseif ($w[2]=='like') {
-                    $w[1] = "'$w[1]'";
-                }
-                if (!is_array($w[1]) && $bindParam && $w[2]!='in' && $w[2]!='not in') {
-                    $w[1] = '?';
-                }
-                if ($i==0) {
-                    $whereStr.=" where {$w[0]} {$w[2]} $w[1]";
+                elseif ($column_condition=='like') {
+                    $column_value = "'%$column_value%'";
                 }else{
-                    $whereStr.=" {$w[3]} {$w[0]} {$w[2]} $w[1]";
+                    $column_value = $this->pendingType($column_value);
                 }
-                // if ($i==($len-1)) {
-                //     $whereStr.=$w[0].' '.$w[2].' '.$w[1];
-                // }else{
-                //     $whereStr.=$w[0].' '.$w[2].' '.$w[1].' '.$w[3].' ';
-                // }
+                // 参数绑定处理
+                if (!is_array($column_value) && $bindParam && $column_condition!='in' && $column_condition!='not in') {
+                    $column_value = '?';
+                }
+
+                if ($first) {
+                    $whereStr.=" where {$column_name } {$column_condition} $column_value";
+                }else{
+                    $whereStr.=" {$column_logic} {$column_name } {$column_condition} $column_value";
+                }
+                $first = false;
+
             }
-        // }
         if (!empty($this->whereString)) {
             $whereStr .= ' and '.$this->whereString;
         }
@@ -85,26 +99,11 @@ class Sql
     }
     public function where($where,$value,$condition='=',$logic='and')
     {
-        // 如果没有绑定参数
-        // if ($bindParams) {
-        //     $this->where = $where;
-        // }else{
-        // }
-        // if (is_array($value)) {
-        //     $value = '('.implode(',',  array_map([$this,'pendingType'],$value)  ).')';
-        //     $condition = 'in';
-        // }
-        // elseif ($value=='null') {
-        //     $condition = 'is';
-        // }
-        // elseif ($condition=='like') {
-        //     $value = "'$value'";
-        // }
-        if ($value===false || $value==='') {
+
+        if ($value === false || $value === '' || $value === null) {
             return ;
         }
         $this->where[] = [$where,$value,$condition,$logic];
-        // return $this;
     }
     public function getBindParam()
     {
@@ -170,6 +169,12 @@ class Sql
     {
         if (is_string($joinStr)) {
             $this->joinStr = $joinStr;
+        }
+    }
+    public function limit($limit)
+    {
+        if (is_numeric($limit)) {
+            $this->limit = $limit;
         }
     }
     public function select($columns)
