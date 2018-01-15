@@ -109,10 +109,15 @@ class Sql
     {
         $paramArray = [];
         foreach ($this->where as $p) {
-            if (is_array($p[1])) {
+            $condition = $p[2];
+            $value     = $p[1];
+            if (is_array($value)) {
                 $paramArray = array_merge($paramArray,$p[1]);
-            }else{
-                $paramArray[] = $p[1];
+            }elseif ($condition == 'like') {
+                $paramArray[] = "%$value%";
+            }
+            else{
+                $paramArray[] = $value;
             }
         }
         return $paramArray;
