@@ -38,9 +38,8 @@ class DB
         // 数据库类型不支持
         try
         {
-            $this->dbh = new PDO("{$this->config['type']}:host={$this->config['host']};dbname={$this->config['database']};charset={$this->config['charset']}", $this->config['username'], $this->config['password'],[PDO::ATTR_PERSISTENT => false]);
+            $this->dbh = new PDO("{$this->config['type']}:host={$this->config['host']};port={$this->config['port']};dbname={$this->config['database']};charset={$this->config['charset']}", $this->config['username'], $this->config['password'],[PDO::ATTR_PERSISTENT => false,PDO::ATTR_TIMEOUT=>3]);
             $this->dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            // echo "do connect";
             $this->dbh->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);
         }
         catch (PDOException $e)
